@@ -59,6 +59,27 @@ local function write_log(message, level)
   pcall(vim.fn.writefile, { line }, log_path, 'a')
 end
 
+local function handle_stderr(stderr)
+  if stderr == nil or stderr == '' then
+    return
+  end
+
+  local lines = vim.split(stderr, '\n', { trimempty = true })
+  for _, line in ipairs(lines) do
+    local err = vim.fn.trim(line)
+    if err ~= '' then
+      local level = parse_stderr_level(err)
+      if level >= M.config.logging.min_level then
+        if M.config.logging.notify then
+          vim.notify('[mago.nvim] ' .. err, level)
+        end
+
+        write_log(err, level)
+      end
+    end
+  end
+end
+
 function M.setup(opts)
   opts = opts or {}
   M.config = vim.tbl_deep_extend('force', M.config, opts)
@@ -93,18 +114,7 @@ function M.run(cmd, opts)
 
   local result = vim.system(cmd, opts):wait()
 
-  if result.stderr ~= '' then
-    local err = vim.fn.trim(result.stderr)
-    if err ~= '' then
-      local level = parse_stderr_level(err)
-      if level >= M.config.logging.min_level then
-        if M.config.logging.notify then
-          vim.notify('[mago.nvim] ' .. err, level)
-        end
-        write_log(err, level)
-      end
-    end
-  end
+  handle_stderr(result.stderr)
 
   return result.stdout
 end
@@ -119,11 +129,7 @@ function M.run_async(cmd, opts, callback)
 
   vim.system(cmd, opts, function(result)
     vim.schedule(function()
-      if result.stderr ~= '' then
-        local err = vim.fn.trim(result.stderr)
-        local level = err:match '^(%S+)'
-        vim.notify('[mago.nvim] ' .. err, vim.log.levels[level] or vim.log.levels.ERROR)
-      end
+      handle_stderr(result.stderr)
 
       if callback ~= nil then
         callback(result.stdout, result)
