@@ -58,6 +58,11 @@ require('mago-nvim').setup {
     min_level = 'INFO', -- TRACE | DEBUG | INFO | WARN | ERROR
     log_file = nil, -- defaults to: vim.fn.stdpath('log') .. '/mago.nvim.log'
   },
+  diagnostics = {
+    checkers = { 'lint', 'analyze', 'guard' }, -- choose any subset/order
+    -- also supported:
+    -- checkers = { lint = true, analyze = false, guard = true }
+  },
 }
 ```
 

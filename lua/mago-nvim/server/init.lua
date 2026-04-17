@@ -98,7 +98,9 @@ end
 
 local M = {}
 
-M.setup = function()
+M.setup = function(opts)
+  require('mago-nvim.server.diagnostics').setup(opts)
+
   if vim.bo.filetype == 'php' then
     start_mago(0)
   end

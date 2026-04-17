@@ -9,7 +9,7 @@ function M.setup(opts)
     return
   end
 
-  require('mago-nvim.server').setup()
+  require('mago-nvim.server').setup(opts)
   require 'mago-nvim.commands'
 end
 

@@ -7,28 +7,80 @@ local severity_map = {
   Note = vim.diagnostic.severity.INFO,
 }
 
-local checkers = {
-  {
+local default_checker_names = { 'lint', 'analyze', 'guard' }
+local checker_registry = {
+  lint = {
     name = 'lint',
     check_async = function(filepath, callback)
       require('mago-nvim.run.lint').check_async(filepath, callback)
     end,
   },
-  {
+  analyze = {
     name = 'analyze',
     check_async = function(filepath, callback)
       require('mago-nvim.run.analyze').check_async(filepath, callback)
     end,
   },
-  {
+  guard = {
     name = 'guard',
     check_async = function(filepath, callback)
       require('mago-nvim.run.guard').check_async(filepath, callback)
     end,
   },
 }
+local active_checkers = {}
 
 local publish_ticks = {}
+
+local function build_checkers(checker_names)
+  local result = {}
+  local seen = {}
+
+  for _, checker_name in ipairs(checker_names) do
+    local checker = checker_registry[checker_name]
+    if checker ~= nil and not seen[checker_name] then
+      seen[checker_name] = true
+      table.insert(result, checker)
+    end
+  end
+
+  return result
+end
+
+local function normalize_checker_names(opts)
+  local diagnostics_opts = opts and opts.diagnostics or {}
+  local configured = diagnostics_opts.checkers
+
+  if configured == nil then
+    return vim.deepcopy(default_checker_names)
+  end
+
+  if type(configured) == 'string' then
+    return { configured }
+  end
+
+  if vim.islist(configured) then
+    local names = {}
+    for _, checker_name in ipairs(configured) do
+      if type(checker_name) == 'string' then
+        table.insert(names, checker_name)
+      end
+    end
+    return names
+  end
+
+  if type(configured) == 'table' then
+    local names = {}
+    for _, checker_name in ipairs(default_checker_names) do
+      if configured[checker_name] == true then
+        table.insert(names, checker_name)
+      end
+    end
+    return names
+  end
+
+  return vim.deepcopy(default_checker_names)
+end
 
 local function get_range_from_span(span, bufnr)
   local start_line = span.start.line
@@ -73,7 +125,7 @@ function M.publish(uri, dispatchers)
   end
 
   local diagnostics = {}
-  local pending = #checkers
+  local pending = #active_checkers
 
   if pending == 0 then
     dispatchers.notification('textDocument/publishDiagnostics', {
@@ -83,7 +135,7 @@ function M.publish(uri, dispatchers)
     return
   end
 
-  for _, checker in ipairs(checkers) do
+  for _, checker in ipairs(active_checkers) do
     checker.check_async(filepath, function(issues)
       if publish_ticks[uri] ~= tick then
         return
@@ -104,5 +156,12 @@ function M.publish(uri, dispatchers)
     end)
   end
 end
+
+function M.setup(opts)
+  local checker_names = normalize_checker_names(opts)
+  active_checkers = build_checkers(checker_names)
+end
+
+M.setup(nil)
 
 return M
