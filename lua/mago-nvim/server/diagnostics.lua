@@ -20,6 +20,12 @@ local checkers = {
       require('mago-nvim.run.analyze').check_async(filepath, callback)
     end,
   },
+  {
+    name = 'guard',
+    check_async = function(filepath, callback)
+      require('mago-nvim.run.guard').check_async(filepath, callback)
+    end,
+  },
 }
 
 local publish_ticks = {}
