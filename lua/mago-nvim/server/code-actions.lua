@@ -1,15 +1,24 @@
 local M = {}
 
 local function get_issue(d)
+  local source = d.user_data.lsp.data and d.user_data.lsp.data.source or 'lint'
+
   return {
     line = d.lnum + 1,
     code = d.user_data.lsp.codeDescription,
+    source = source,
   }
 end
 
 local function get_issues_from_buffer(bufnr)
   local contains_parse_issue = false
   local diagnostics = vim.tbl_filter(function(diag)
+    local source = diag.user_data.lsp.data and diag.user_data.lsp.data.source or 'lint'
+
+    if source ~= 'lint' then
+      return false
+    end
+
     if diag.user_data.lsp.codeDescription == 'parse' then
       contains_parse_issue = true
     end

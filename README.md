@@ -9,7 +9,7 @@ PHP toolchain written in Rust.
 - [x] Linter (show diagnostics on file save)
 - [x] Fix diagnostics with Code Actions
 - [x] Explain Rule with Code Actions
-- [ ] Analyzer
+- [x] Analyzer (show diagnostics on file save)
 
 ## Requirements
 

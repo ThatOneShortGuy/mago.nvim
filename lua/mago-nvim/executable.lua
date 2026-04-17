@@ -39,4 +39,27 @@ function M.run(cmd, opts)
   return result.stdout
 end
 
+function M.run_async(cmd, opts, callback)
+  if opts == nil then
+    opts = {}
+  end
+
+  table.insert(cmd, 1, M.mago_path)
+  opts.text = true
+
+  vim.system(cmd, opts, function(result)
+    vim.schedule(function()
+      if result.stderr ~= '' then
+        local err = vim.fn.trim(result.stderr)
+        local level = err:match '^(%S+)'
+        vim.notify('[mago.nvim] ' .. err, vim.log.levels[level] or vim.log.levels.ERROR)
+      end
+
+      if callback ~= nil then
+        callback(result.stdout, result)
+      end
+    end)
+  end)
+end
+
 return M
